@@ -1,6 +1,7 @@
 import { model, Schema, Document } from "mongoose";
 
 export type UserType = {
+    _id?: string
     email: string
     fullname: string
     username: string
@@ -12,7 +13,7 @@ export type UserType = {
     website?: string
 }
 
-type UserModelDocumentType = UserType & Document
+export type UserModelDocumentType = UserType & Document
 
 const UserSchema = new Schema<UserType>({
     email: {
@@ -31,12 +32,14 @@ const UserSchema = new Schema<UserType>({
     },
     password: {
         required: true,
+        // select: false,
         type: String
     },
     confirmHash: {
         unique: true,
         required: true,
-        type: String
+        type: String,
+        select: false,
     },
     confirmed: {
         type: Boolean,
@@ -51,6 +54,14 @@ const UserSchema = new Schema<UserType>({
     // notifications: String,
     // bookmarks: String,
 
+})
+
+UserSchema.set('toJSON', {
+    transform: function(_: any, obj: any) {
+        delete obj.password
+        delete obj.confirmHash
+        return obj
+    }
 })
 
 export const UserModel = model<UserModelDocumentType>("User", UserSchema)
