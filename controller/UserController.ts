@@ -1,6 +1,6 @@
 import express from "express";
 import { validationResult } from "express-validator";
-import { UserModel } from "../modules/UserModel";
+import { UserModel, UserType } from "../modules/UserModel";
 import { generateMD5 } from "../utils/generateHash";
 import { sendEmail } from "../utils/sendEmail";
 
@@ -14,7 +14,7 @@ class UserController {
                 data: users
             })
         } catch (error) {
-            res.json({
+            res.status(500).json({
                 status: 'error',
                 message: JSON.stringify(error)
             })
@@ -29,7 +29,7 @@ class UserController {
                 return 
             }
 
-            const data = {
+            const data: UserType = {
                 email: req.body.email,
                 username: req.body.username,
                 password: req.body.password,
@@ -38,6 +38,8 @@ class UserController {
             }
 
             const user = await UserModel.create(data)
+
+            
             
             res.json({
                 status: "success",
@@ -49,13 +51,42 @@ class UserController {
                 emailTo: data.email,
                 subject: "Подтверждение почты Twitter Clone",
                 html: `Для того, чтобы подтвердить почту, перейдите 
-                <a href="http://localhost:${process.env.PORT || 8888}/signup/verify?hash=${data.confirmHash}">по этой ссылке</a>`,
+                <a href="http://localhost:${process.env.PORT || 8888}/users/verify?hash=${data.confirmHash}">по этой ссылке</a>`,
             })
             
         } catch (error) {
             res.json({
                 status: "error",
                 data: error
+            })
+        }
+    }
+    async verify(req: express.Request, res: express.Response): Promise<void> {
+        try {
+            const hash: any = req.query.hash
+
+            if (!hash) {
+                res.status(400).send()
+                return
+            }
+            const user = await UserModel.findOne({ confirmHash: hash }).exec()
+
+            if (user) {
+                user.confirmed = true
+                user.save()
+                res.json({
+                    status: 'success',
+                })
+            } else {
+                res.status(404).json({status: "error", message: "User not found"})
+            }
+            
+
+            
+        } catch (error) {
+            res.status(500).json({
+                status: 'error',
+                data: error,
             })
         }
     }

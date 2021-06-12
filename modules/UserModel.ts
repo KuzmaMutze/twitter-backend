@@ -1,6 +1,20 @@
-import { model, Schema } from "mongoose";
+import { model, Schema, Document } from "mongoose";
 
-const UserSchema = new Schema({
+export type UserType = {
+    email: string
+    fullname: string
+    username: string
+    password: string
+    confirmHash: string
+    confirmed?: boolean
+    location?: string
+    about?: string
+    website?: string
+}
+
+type UserModelDocumentType = UserType & Document
+
+const UserSchema = new Schema<UserType>({
     email: {
         unique: true,
         required: true,
@@ -39,4 +53,4 @@ const UserSchema = new Schema({
 
 })
 
-export const UserModel = model("User", UserSchema)
+export const UserModel = model<UserModelDocumentType>("User", UserSchema)
