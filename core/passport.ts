@@ -1,7 +1,7 @@
 import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
 import { Strategy as JWTstrategy, ExtractJwt } from "passport-jwt";
-import { UserModel } from "../modules/UserModel";
+import { UserModel, UserType } from "../modules/UserModel";
 import { generateMD5 } from "../utils/generateHash";
 
 
@@ -15,7 +15,7 @@ passport.use(
                 if (!user) {
                     return done(null, false)
                 } 
-                if(user.password === generateMD5(password + process.env.SECRET_KEY)){
+                if(user.confirmed && user.password === generateMD5(password + process.env.SECRET_KEY)){
                     return done(null, user)
                 } else {
                     return done(null, false)
@@ -30,13 +30,17 @@ passport.use(
     new JWTstrategy(
       {
         secretOrKey: process.env.SECRET_KEY || '123',
-        jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken()
+        jwtFromRequest: ExtractJwt.fromHeader("token")
       },
-      async (payload, done) => {
+      async (payload: {data: UserType}, done: any) => {
         try {
-          return done(null, payload.user);
+            const user = await UserModel.findById(payload.data._id).exec()
+            if (user) {
+                return done(null, user);
+            }
+            done(null, false)
         } catch (error) {
-          done(error);
+            done(error, false);
         }
       }
     )

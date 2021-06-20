@@ -5,9 +5,8 @@ import { validationResult } from "express-validator";
 import { UserModel, UserModelDocumentType, UserType } from "../modules/UserModel";
 import { generateMD5 } from "../utils/generateHash";
 import { sendEmail } from "../utils/sendEmail";
+import { isValideObjId } from "../utils/isValideObjId";
 
-
-const isValideObjId = mongoose.Types.ObjectId.isValid
 class UserController {
     async index(_: express.Request, res: express.Response): Promise<void>{
         try {
@@ -33,7 +32,7 @@ class UserController {
                 return
             }
 
-            const user = await UserModel.findById( userId ).exec()
+            const user = await UserModel.findById( userId ).populate('tweets').exec()
             if (!user) {
                 res.status(404).send()
                 return
@@ -52,28 +51,36 @@ class UserController {
     async create(req: express.Request, res: express.Response): Promise<void>{
         try {
             const errors = validationResult(req)
-
+            console.log(errors.array());
+            
             if (!errors.isEmpty()) {
                 res.status(400).json({status: "error", errors: errors.array()})
                 return 
             }
-
+            console.log(req.body.email);
+            console.log(req.body.fullname);
+            console.log(req.body.username);
+            console.log(generateMD5(req.body.password + process.env.SECRET_KEY));
+            console.log(generateMD5(Math.random().toString()));
             const data: UserType = {
                 email: req.body.email,
+                fullname: req.body.fullname,
                 username: req.body.username,
                 password: generateMD5(req.body.password + process.env.SECRET_KEY),
-                fullname: req.body.email,
-                confirmHash: generateMD5(process.env.SECRET_KEY || Math.random().toString())
+                confirmHash: generateMD5(Math.random().toString()),
+                confirmed: true
             }
 
             const user = await UserModel.create(data)
 
             
             
+            
             res.json({
                 status: "success",
                 data: user
             })
+            console.log(data.confirmHash);
             
             sendEmail({
                 emailFrom: "admin@twitter.com",
@@ -85,7 +92,7 @@ class UserController {
             
         } catch (error) {
             res.json({
-                status: "error",
+                status: "error 123",
                 data: error
             })
         }
@@ -126,7 +133,7 @@ class UserController {
                 status: 'success',
                 data: {
                     ...user,
-                    token: jwt.sign({data: req.user}, process.env.SECRET_KEY || "123", {expiresIn: "30d"})
+                    token: jwt.sign({data: req.user}, process.env.SECRET_KEY || "123", {expiresIn: "30 days"})
 
                 }
             })
@@ -138,6 +145,20 @@ class UserController {
         }
     }
     async getUserInfo(req: express.Request, res: express.Response): Promise<void>{
+        try {
+            const user = req.user ? (req.user as UserModelDocumentType).toJSON() : undefined
+            res.json({
+                status: 'success',
+                data: user
+            })
+        } catch (error) {
+            res.status(500).json({
+                status: 'error',
+                message: JSON.stringify(error)
+            })
+        }
+    }
+    async tweetsController(req: express.Request, res: express.Response): Promise<void>{
         try {
             const user = req.user ? (req.user as UserModelDocumentType).toJSON() : undefined
             res.json({

@@ -11,6 +11,7 @@ export type UserType = {
     location?: string
     about?: string
     website?: string
+    tweets?: Array<string>
 }
 
 export type UserModelDocumentType = UserType & Document
@@ -50,18 +51,20 @@ const UserSchema = new Schema<UserType>({
     website: String,
     // followers: String,
     // follows: String,
-    // tweets: String,
+    tweets: [{type: Schema.Types.ObjectId, ref: 'Tweet'}],
     // notifications: String,
     // bookmarks: String,
 
+},{
+    timestamps: true
 })
 
 UserSchema.set('toJSON', {
-    transform: function(_: any, obj: any) {
-        delete obj.password
-        delete obj.confirmHash
-        return obj
-    }
+	transform(_: any, obj: any) {
+		delete obj.password
+		delete obj.confirmHash
+		return obj
+	}
 })
 
 export const UserModel = model<UserModelDocumentType>("User", UserSchema)
